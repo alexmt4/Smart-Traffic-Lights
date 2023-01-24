@@ -1,0 +1,712 @@
+#include <SharpIR.h>
+
+#define ir1 A5
+#define ir2 A2
+#define ir3 A3
+
+#define model 20150
+
+#define button_pin 4
+
+#define ledA1 2
+#define ledA2 3
+#define ledA3 18
+
+#define ledB1 5
+#define ledB2 6
+#define ledB3 7
+
+#define ledC1 8
+#define ledC2 9
+#define ledC3 10
+
+#define ledD1 11
+#define ledD2 12
+#define ledD3 13
+
+SharpIR SharpIR1(ir1, model);
+SharpIR SharpIR2(ir2, model);
+SharpIR SharpIR3(ir3, model);
+
+
+int a1, b1, c1, d1;
+int timea1, timeb1, timec1, timed1;
+int Db1, Da1, Dc1, Dd1;
+
+int emergency, emergencyButton;
+int start1, start2, start3, start4;
+int wtimeA, wtimeB, wtimeC, wtimeD;
+int counterA, counterB, counterC, counterD;
+int illcounterB, illcounterA, illcounterC, illcounterD;
+
+bool state1 = true;
+bool state2 = true;
+bool state3 = true;
+bool state4 = true;
+bool illstate1 = true;
+bool illstate2 = true;
+bool illstate3 = true;
+bool illstate4 = true;
+
+unsigned long delayStart = 0;
+
+
+void setup() {
+
+  Serial.begin(9600);
+
+  pinMode(ledA1, OUTPUT);
+  pinMode(ledA2, OUTPUT);
+  pinMode(ledA3, OUTPUT);
+
+  pinMode(ledB1, OUTPUT);
+  pinMode(ledB2, OUTPUT);
+  pinMode(ledB3, OUTPUT);
+
+  pinMode(ledC1, OUTPUT);
+  pinMode(ledC2, OUTPUT);
+  pinMode(ledC3, OUTPUT);
+
+  pinMode(ledD1, OUTPUT);
+  pinMode(ledD2, OUTPUT);
+  pinMode(ledD3, OUTPUT);
+
+  pinMode(button_pin, INPUT);
+  
+  illstate1 = false;
+  illstate2 = false;
+  illstate3 = false;
+  illstate4 = false;
+}
+
+void loop() {
+
+  readSensor();
+
+  if (emergency == 1) {
+    openEmergency();
+        
+  } else {
+    if (a1 == 0 && b1 == 0 && c1 == 0 && d1 == 0) {
+      roadAopen();
+      if (a1 == 0 && b1 == 0 && c1 == 0 && d1 == 0 && emergency == 0) {
+        roadBopen();
+        if (a1 == 0 && b1 == 0 && c1 == 0 && d1 == 0 && emergency == 0) {
+          roadCopen();
+          if (a1 == 0 && b1 == 0 && c1 == 0 && d1 == 0 && emergency == 0) {
+            roadDopen();
+          }
+        }
+      }
+    } else if (a1 == 1 && b1 == 0 && c1 == 0 && d1 == 0) {
+      roadAopen();
+    } else if (b1 == 1 && a1 == 0 && c1 == 0 && d1 == 0) {
+      roadBopen();
+    } else if (c1 == 1 && a1 == 0 && b1 == 0 && d1 == 0) {
+      roadCopen();
+    } else if (d1 == 1 && a1 == 0 && b1 == 0 && c1 == 0) {
+      roadDopen();
+    } else if ((a1 == 1) && (b1 == 1 || c1 == 1 || d1 == 1)) {
+      if ((timea1 > timeb1) && (timea1 > timec1) && (timea1 > timed1)) {
+        roadAopen();
+      } else if ((timeb1 > timea1) && (timeb1 > timec1) && (timeb1 > timed1)) {
+        roadBopen();
+      } else if ((timec1 > timea1) && (timec1 > timeb1) && (timec1 > timed1)) {
+        roadCopen();
+      } else if ((timed1 > timea1) && (timed1 > timeb1) && (timed1 > timec1)) {
+        roadDopen();
+      }
+    } else if ((b1 == 1) && (c1 == 1 || d1 == 1)) {
+      if ((timea1 > timeb1) && (timea1 > timec1) && (timea1 > timed1)) {
+        roadAopen();
+      } else if ((timeb1 > timea1) && (timeb1 > timec1) && (timeb1 > timed1)) {
+        roadBopen();
+      } else if ((timec1 > timea1) && (timec1 > timeb1) && (timec1 > timed1)) {
+        roadCopen();
+      } else if ((timed1 > timea1) && (timed1 > timeb1) && (timed1 > timec1)) {
+        roadDopen();
+      }
+    } else if ((c1 == 1) && (d1 == 1))
+      if ((timea1 > timeb1) && (timea1 > timec1) && (timea1 > timed1)) {
+        roadAopen();
+      } else if ((timeb1 > timea1) && (timeb1 > timec1) && (timeb1 > timed1)) {
+        roadBopen();
+      } else if ((timec1 > timea1) && (timec1 > timeb1) && (timec1 > timed1)) {
+        roadCopen();
+      } else if ((timed1 > timea1) && (timed1 > timeb1) && (timed1 > timec1)) {
+        roadDopen();
+      }
+  }
+}
+
+
+void readSensor() {
+  Da1 = analogRead(A0);
+  Db1 = SharpIR1.distance();
+  Dc1 = SharpIR2.distance();
+  Dd1 = SharpIR3.distance();
+
+  if (Da1 < 200) {
+    a1 = 1;
+    timea1 = timea1 + 1;
+    if (timea1 == 1){
+    start1 = millis();
+    }
+  } else {
+    a1 = 0;
+    timea1 = 0;
+    start1 =0;
+    }
+
+  if (Db1 < 30) {
+    b1 = 1;
+    timeb1 = timeb1 + 1;
+    if (timeb1 == 1){
+    start2 = millis();
+    }
+  } else {
+    b1 = 0;
+    timeb1 = 0;
+    start2 = 0;
+  }
+
+  if (Dc1 < 30) {
+    c1 = 1;
+    timec1 = timec1 + 1;
+    if (timec1 == 1){
+     start3 = millis();
+    }
+  } else {
+    c1 = 0;
+    timec1 = 0;
+    start3 = 0;
+  }
+
+  if (Dd1 < 30) {
+    d1 = 1;
+    timed1 = timed1 + 1;
+    if(timed1 == 1){
+      start4 = millis();
+    }
+  } else {
+    d1 = 0;
+    timed1 = 0;
+    start4 = 0;
+  }
+  
+  emergencyButton = digitalRead(button_pin);
+ if (emergencyButton == 1 ){
+  emergency = 1;
+ }
+
+}
+
+
+void roadAopen() {
+  digitalWrite(ledA3, LOW);
+  digitalWrite(ledA1, HIGH);
+  digitalWrite(ledB3, HIGH);
+  digitalWrite(ledC3, HIGH);
+  digitalWrite(ledD3, HIGH);
+  wtimeA = millis() - start1;
+  if (start1 != 0) {
+  Serial.println("Waiting time A:");
+  Serial.println(wtimeA);
+  Serial.println("ms");
+  }
+  state1 = true;
+  delayStart = millis();
+  while ((millis() < delayStart + 4000) && (emergency == 0)) {
+    readSensor();
+
+    if ((Da1 < 200) && state1){
+      counterA = counterA +1;
+      state1 = false;
+     readSensor(); 
+    }         
+    if (Da1 > 200){
+        state1 = true;
+    }
+
+    if (Db1 < 30){
+      illstate2 = true;
+     readSensor(); 
+    }         
+    if ((Db1 > 30) && illstate2){
+        illstate2 = false;
+        illcounterB = illcounterB +1;
+    }
+
+    if (Dc1 < 30){
+      illstate3 = true;
+     readSensor(); 
+    }         
+    if ((Dc1 > 30) && illstate3){
+        illstate3 = false;
+        illcounterC = illcounterC +1;
+    }
+
+    if (Dd1 < 30){
+      illstate4 = true;
+     readSensor(); 
+    }         
+    if ((Dd1 > 30) && illstate4){
+        illstate4 = false;
+        illcounterD = illcounterD +1;
+    } 
+  }
+  digitalWrite(ledA1, LOW);
+  digitalWrite(ledA2, HIGH);
+  delayStart = millis();
+  while (millis() < delayStart + 2000) {
+    readSensor();
+
+    if ((Da1 < 200) && state1){
+      counterA = counterA +1;
+      state1 = false;
+     readSensor(); 
+    }         
+    if (Da1 > 200){
+        state1 = true;
+    }
+    
+    if (Db1 < 30){
+      illstate2 = true;
+     readSensor(); 
+    }         
+    if ((Db1 > 30) && illstate2){
+        illstate2 = false;
+        illcounterB = illcounterB +1;
+    }
+
+    if (Dc1 < 30){
+      illstate3 = true;
+     readSensor(); 
+    }         
+    if ((Dc1 > 30) && illstate3){
+        illstate3 = false;
+        illcounterC = illcounterC +1;
+    }
+
+    if (Dd1 < 30){
+      illstate4 = true;
+     readSensor(); 
+    }         
+    if ((Dd1 > 30) && illstate4){
+        illstate4 = false;
+        illcounterD = illcounterD +1;
+    }
+ }
+  digitalWrite(ledA2, LOW);
+  readSensor();
+  Serial.println("Counter A") ;
+  Serial.println(counterA) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter B") ;
+  Serial.println(illcounterB) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter C") ;
+  Serial.println(illcounterC) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter D") ;
+  Serial.println(illcounterD) ;
+  Serial.println("vehicles") ;
+  
+  counterA = 0;
+  illcounterB = 0;
+  illcounterC = 0;
+  illcounterD = 0;
+}
+
+void roadBopen() {
+  digitalWrite(ledB3, LOW);
+  digitalWrite(ledA3, HIGH);
+  digitalWrite(ledB1, HIGH);
+  digitalWrite(ledC3, HIGH);
+  digitalWrite(ledD3, HIGH);
+  wtimeB = millis() - start2;
+  if (start2 != 0){
+    Serial.println("Waiting time B:");
+    Serial.println(wtimeB);
+    Serial.println("ms");
+  }
+  state2 = true;
+  delayStart = millis();
+  while ((millis() < delayStart + 4000) && (emergency == 0)) {
+     readSensor();
+
+    if ((Db1 < 30) && state2){
+      counterB = counterB +1;
+      state2 = false;
+     readSensor(); 
+    }         
+    if (Db1 > 30){
+        state2 = true;
+    }
+
+    if (Da1 < 200){
+      illstate1 = true;
+     readSensor(); 
+    }         
+    if ((Da1 > 200) && illstate1){
+        illstate1 = false;
+        illcounterA = illcounterA +1;
+    }   
+
+     if (Dc1 < 30){
+      illstate3 = true;
+     readSensor(); 
+    }         
+    if ((Dc1 > 30) && illstate3){
+        illstate3 = false;
+        illcounterC = illcounterC +1;
+    }
+
+    if (Dd1 < 30){
+      illstate4 = true;
+     readSensor(); 
+    }         
+    if ((Dd1 > 30) && illstate4){
+        illstate4 = false;
+        illcounterD = illcounterD +1;
+    }
+  }
+  digitalWrite(ledB1, LOW);
+  digitalWrite(ledB2, HIGH);
+  delayStart = millis();
+  while (millis() < delayStart + 2000) {
+    readSensor();
+    
+    if ((Db1 < 30) && state2){
+      counterB = counterB +1;
+      state2 = false;
+     readSensor(); 
+    }         
+    if (Db1 > 30){
+        state2 = true;
+    }
+
+    if (Da1 < 200){
+      illstate1 = true;
+     readSensor(); 
+    }         
+    if ((Da1 > 200) && illstate1){
+        illstate1 = false;
+        illcounterA = illcounterA +1;
+    }
+
+    if (Dc1 < 30){
+      illstate3 = true;
+     readSensor(); 
+    }         
+    if ((Dc1 > 30) && illstate3){
+        illstate3 = false;
+        illcounterC = illcounterC +1;
+    }
+
+    if (Dd1 < 30){
+      illstate4 = true;
+     readSensor(); 
+    }         
+    if ((Dd1 > 30) && illstate4){
+        illstate4 = false;
+        illcounterD = illcounterD +1;
+    }
+  }
+  digitalWrite(ledB2, LOW);
+  readSensor();
+  
+  Serial.println("Counter B") ;
+  Serial.println(counterB) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter A") ;
+  Serial.println(illcounterA) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter C") ;
+  Serial.println(illcounterC) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter D") ;
+  Serial.println(illcounterD) ;
+  Serial.println("vehicles") ;
+
+  counterB = 0;
+  illcounterA = 0;
+  illcounterC = 0;
+  illcounterD = 0; 
+}
+
+void roadCopen() {
+  digitalWrite(ledC3, LOW);
+  digitalWrite(ledA3, HIGH);
+  digitalWrite(ledB3, HIGH);
+  digitalWrite(ledC1, HIGH);
+  digitalWrite(ledD3, HIGH);
+   wtimeC = millis() - start3;
+  if (start3 != 0){
+    Serial.println("Waiting time C:");
+    Serial.println(wtimeC);
+    Serial.println("ms");
+  }
+  state3 = true;
+  delayStart = millis();
+  while ((millis() < delayStart + 4000) && (emergency == 0)) {
+    readSensor();
+
+    if ((Dc1 < 30) && state3){
+      counterC = counterC +1;
+      state3 = false;
+     readSensor(); 
+    }         
+    if (Dc1 > 30){
+        state3 = true;
+    }
+
+    if (Da1 < 200){
+      illstate1 = true;
+     readSensor(); 
+    }         
+    if ((Da1 > 200) && illstate1){
+        illstate1 = false;
+        illcounterA = illcounterA +1;
+    }
+      
+    if (Db1 < 30){
+      illstate2 = true;
+     readSensor(); 
+    }         
+    if ((Db1 > 30) && illstate2){
+        illstate2 = false;
+        illcounterB = illcounterB +1;
+    }
+
+    if (Dd1 < 30){
+      illstate4 = true;
+     readSensor(); 
+    }         
+    if ((Dd1 > 30) && illstate4){
+        illstate4 = false;
+        illcounterD = illcounterD +1;
+    }
+  }
+  digitalWrite(ledC1, LOW);
+  digitalWrite(ledC2, HIGH);
+  delayStart = millis();
+  while (millis() < delayStart + 2000) {
+    readSensor();
+    
+    if ((Dc1 < 30) && state3){
+      counterC = counterC +1;
+      state3 = false;
+     readSensor(); 
+    }         
+    if (Dc1 > 30){
+        state3 = true;
+    } 
+  
+    if (Da1 < 200){
+      illstate1 = true;
+     readSensor(); 
+    }         
+    if ((Da1 > 200) && illstate1){
+        illstate1 = false;
+        illcounterA = illcounterA +1;
+    }
+
+    if (Db1 < 30){
+      illstate2 = true;
+     readSensor(); 
+    }         
+    if ((Db1 > 30) && illstate2){
+        illstate2 = false;
+        illcounterB = illcounterB +1;
+    }
+
+    if (Dd1 < 30){
+      illstate4 = true;
+     readSensor(); 
+    }         
+    if ((Dd1 > 30) && illstate4){
+        illstate4 = false;
+        illcounterD = illcounterD +1;
+    }
+  }
+  digitalWrite(ledC2, LOW);
+  readSensor();
+
+  Serial.println("Counter C") ;
+  Serial.println(counterC) ;
+  Serial.println("vehicles") ;
+  
+  Serial.println("Illegal Counter A") ;
+  Serial.println(illcounterA) ;
+  Serial.println("vehicles") ;
+ 
+  Serial.println("Illegal Counter B") ;
+  Serial.println(illcounterB) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter D") ;
+  Serial.println(illcounterD) ;
+  Serial.println("vehicles") ;
+  
+  counterC = 0;
+  illcounterA = 0;
+  illcounterB = 0;
+  illcounterD = 0;
+}
+
+
+void roadDopen() {
+  digitalWrite(ledD3, LOW);
+  digitalWrite(ledA3, HIGH);
+  digitalWrite(ledB3, HIGH);
+  digitalWrite(ledC3, HIGH);
+  digitalWrite(ledD1, HIGH);
+  wtimeD = millis() - start4;
+  if (start4 != 0){
+    Serial.println("Waiting time D:");
+    Serial.println(wtimeD);
+    Serial.println("ms");
+  }
+  state4 = true;
+  delayStart = millis();
+  while ((millis() < delayStart + 4000) && (emergency == 0)) {
+    readSensor();
+
+    if ((Dd1 < 30) && state4){
+      counterD = counterD +1;
+      state4 = false;
+     readSensor(); 
+    }         
+    if (Dd1 > 30){
+        state4 = true;
+    }
+
+    if (Da1 < 200){
+      illstate1 = true;
+     readSensor(); 
+    }         
+    if ((Da1 > 200) && illstate1){
+        illstate1 = false;
+        illcounterA = illcounterA +1;
+    }
+
+    if (Db1 < 50){
+      illstate2 = true;
+     readSensor(); 
+    }         
+    if ((Db1 > 50) && illstate2){
+        illstate2 = false;
+        illcounterB = illcounterB +1;
+    }
+
+    if (Dc1 < 30){
+      illstate3 = true;
+     readSensor(); 
+    }         
+    if ((Dc1 > 30) && illstate3){
+        illstate3 = false;
+        illcounterC = illcounterC +1;
+    }
+  }
+  digitalWrite(ledD1, LOW);
+  digitalWrite(ledD2, HIGH);
+  delayStart = millis();
+  while (millis() < delayStart + 2000) {
+    readSensor();
+
+    if ((Dd1 < 30) && state4){
+      counterD = counterD +1;
+      state4 = false;
+     readSensor(); 
+    }         
+    if (Dd1 > 30){
+        state4 = true;
+    }
+
+    if (Da1 < 200){
+      illstate1 = true;
+     readSensor(); 
+    }         
+    if ((Da1 > 200) && illstate1){
+        illstate1 = false;
+        illcounterA = illcounterA +1;
+    }
+
+    if (Db1 < 50){
+      illstate2 = true;
+     readSensor(); 
+    }         
+    if ((Db1 > 50) && illstate2){
+        illstate2 = false;
+        illcounterB = illcounterB +1;
+    }
+
+    if (Dc1 < 30){
+      illstate3 = true;
+     readSensor(); 
+    }         
+    if ((Dc1 > 30) && illstate3){
+        illstate3 = false;
+        illcounterC = illcounterC +1;
+    }  
+  }
+  digitalWrite(ledD2, LOW);
+  readSensor();
+
+  Serial.println("Counter D") ;
+  Serial.println(counterD) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter A") ;
+  Serial.println(illcounterA) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter B") ;
+  Serial.println(illcounterB) ;
+  Serial.println("vehicles") ;
+
+  Serial.println("Illegal Counter C") ;
+  Serial.println(illcounterC) ;
+  Serial.println("vehicles") ;
+
+  counterD = 0;
+  illcounterA = 0;
+  illcounterB = 0;
+  illcounterC = 0;
+}
+
+void openEmergency() {
+  digitalWrite(ledD3, LOW);
+  digitalWrite(ledA3, HIGH);
+  digitalWrite(ledB3, HIGH);
+  digitalWrite(ledC3, HIGH);
+  digitalWrite(ledD1, HIGH);
+  delayStart = millis();
+  while (millis() < delayStart + 12000) {
+    digitalWrite(ledA2, HIGH);
+    digitalWrite(ledB2, HIGH);
+    digitalWrite(ledC2, HIGH);
+    delay(200);
+    digitalWrite(ledA2, LOW);
+    digitalWrite(ledB2, LOW);
+    digitalWrite(ledC2, LOW);
+    delay(200);
+    readSensor();
+  }
+  digitalWrite(ledD1, LOW);
+  digitalWrite(ledD2, HIGH);
+  delayStart = millis();
+  while (millis() < delayStart + 2000) {
+    readSensor();
+  }
+  digitalWrite(ledD2, LOW);
+  emergency = 0;
+  readSensor();
+}
