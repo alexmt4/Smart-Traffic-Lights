@@ -1,0 +1,139 @@
+let table;
+let numRows, numCols;
+let Time = [], WaitingTime = [];
+let diagramX,diagramY;
+
+function preload(){
+  table = loadTable("assets/waiting time.csv","csv","header");
+}
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  rectMode(CENTER)
+  //get basic information of the data 
+  numRows = table.getRowCount();
+  numCols = table.getColumnCount();
+  //print("rows: " + numRows + "cols: " + numCols)
+  
+  //load data
+  for(let r =0; r<table.getRowCount(); r++){
+    Time[r] = table.getString(r,0);
+    WaitingTime[r] = table.getNum(r,1);
+    //print(Time[r] + "  " +WaitingTime[r])
+  }
+  minMax();
+  
+}
+
+let size = [];
+function draw() {
+  background(240);
+  chartInfo();
+  timeInfoAM();
+  timeInfoPM();
+  clock();
+  diagramX = (width/4)*3-90
+  diagramY = height/2;
+  let radius = width/5-100;
+  let ang = 360 / numRows;
+  
+  for(let i =0; i<numRows; i++){
+    size[i] = map(WaitingTime[i],2,10,0,205);
+    let pointx =  (size[i]+radius)*cos(radians(ang*i))+diagramX;
+    let pointy =  (size[i]+radius)*sin(radians(ang*i))+diagramY;
+    let cirx = radius* cos(radians(ang*i))+diagramX;
+    let ciry = radius* sin(radians(ang*i))+diagramY;
+    
+    //draw the line
+    if(i % 12=== 0){
+      strokeWeight(1.5);
+      stroke('black')
+      line(cirx,ciry,pointx,pointy)
+    }else{if (int(Time[i])>11){
+       stroke('#FF5722')
+      }else stroke('#2196F3')
+    strokeWeight(1);
+    line(cirx,ciry,pointx,pointy)
+    }
+    
+    //hover -
+    //draw the data point
+    let datasize = 3;
+    let dis = dist(mouseX,mouseY, pointx, pointy);
+    if(dis<5){
+      fill('red')
+      datasize=10;
+      noStroke();
+      circle(pointx,pointy,datasize);
+      //draw information 
+      textAlign(CENTER)
+      textSize(15);
+      fill('black')
+      text(Time[i],diagramX,diagramY)
+      if (WaitingTime[i]<7){
+       fill('green')
+      }else fill('red')
+       rect(diagramX,diagramY+15,30,5)
+       textSize(20);
+       text(WaitingTime[i],diagramX,diagramY+45);
+      
+    }else{
+      fill('blue')
+      datasize=4;
+      noStroke();
+      circle(pointx,pointy,datasize);
+    }
+    
+  }
+}
+
+function chartInfo(){
+  textSize(25);
+  textAlign(LEFT);
+  fill('black');
+  text("Vehicle waiting time in traffic light", width/5, height/4-120, width/3.5)
+}
+
+function timeInfoAM(){
+  textSize(25);
+  textAlign(LEFT);
+  fill('#2196F3');
+  text("Blue indicates ante meridiem (AM)", width/5, height/4+80, width/4)
+}
+
+function timeInfoPM(){
+  textSize(25);
+  textAlign(LEFT);
+  fill('#FF5722');
+  text("Orange indicates post meridiem (PM)", width/5, height/4+180, width/4)
+}
+
+let dataMin, dataMax=0;
+function minMax(){
+  for(let i=0; i<numRows;i++){
+    if(table.getNum(i,1)>dataMax){
+      dataMax = table.getNum(i,1);
+    }
+  }
+  dataMin = dataMax;
+  for(let i=0; i<numRows; i++){
+    if(table.getNum(i,1),dataMin){
+      dataMin = table.getNum(i,1);
+    }
+  }
+  print("max value "+ dataMax +"min value" +dataMin)
+}
+
+function clock()
+{
+ fill("black");
+  textAlign(LEFT);
+  textSize(30);
+  let Hour = hour();
+  let min = minute();
+  let secs = second()
+  let noon = Hour >= 12? " PM" : " AM"
+  if(min < 10)
+    min = "0"+min
+  Hour%=12
+  text(Hour+":"+min+":"+secs+noon, width/4, height/4-20, width/3); 
+}
